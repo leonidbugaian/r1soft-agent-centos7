@@ -1,0 +1,38 @@
+---
+- hosts: web2
+  connection: ssh
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  roles:
+    - r1soft-agent-centos7
+  tasks:
+    - copy:
+        src: /etc/ansible/roles/r1soft-agent-centos7/r1soft.repo
+        dest: /etc/yum.repos.d
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: upgrade all packages
+      yum: name=* state=latest
+
+    - name: Opening appropriate port on Remote system for agent
+      firewalld: 
+        port: 1167/tcp
+        permanent: true
+        state: enabled
+        zone: public 
+ 
+    - name: restart firewalld
+      service: name=firewalld state=restarted
+    
+
+    - name: restart service
+      shell: /etc/init.d/cdp-agent restart
+
+    - name: get a key
+      command: r1soft-setup --get-key http://192.168.1.120:8080
+      
+    - name: make sure  enable the backup service to start on boot
+      service: name=cdp-agent  enabled=yes
